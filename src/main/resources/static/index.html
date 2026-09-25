@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CWLS - Collaborative Work Logging System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans p-6">
+
+  <!-- Auth Modal Overlay -->
+  <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white max-w-md w-full rounded-2xl shadow-xl border border-slate-200 p-8 space-y-6">
+      <div>
+        <h2 id="modalTitle" class="text-2xl font-bold text-center text-slate-900">Sign in to CWLS</h2>
+        <div class="flex border-b border-slate-200 mt-4">
+          <button id="tabLogin" type="button" onclick="switchAuthTab('login')" class="w-1/2 py-2 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition cursor-pointer">Sign In</button>
+          <button id="tabRegister" type="button" onclick="switchAuthTab('register')" class="w-1/2 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition cursor-pointer">Create Account</button>
+        </div>
+      </div>
+
+      <div id="modalAlert" class="hidden p-3 text-sm font-medium rounded-lg transition-all"></div>
+
+      <!-- Login Form -->
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username</label>
+          <input id="loginUsername" type="text" value="john_doe" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password</label>
+          <input id="loginPassword" type="password" value="password123" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition shadow-sm cursor-pointer">Sign In</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-3 hidden">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Full Name</label>
+          <input id="regName" type="text" placeholder="Sarah Connor" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Email</label>
+          <input id="regEmail" type="email" placeholder="sarah@cwls.com" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Department</label>
+            <input id="regDept" type="text" value="Engineering" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Designation</label>
+            <input id="regDesig" type="text" value="Developer" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username</label>
+          <input id="regUsername" type="text" placeholder="sarah_c" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password</label>
+          <input id="regPassword" type="password" placeholder="••••••••" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition shadow-sm mt-2 cursor-pointer">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard Container -->
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <header class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight" id="sysCompanyName">CWLS Enterprise</h1>
+        <p class="text-sm text-slate-500">Collaborative Work Logging System</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-right">
+          <span id="navUserName" class="block font-bold text-slate-800 text-sm">Guest</span>
+          <span id="navRoleBadge" class="inline-block bg-indigo-50 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-mono uppercase font-semibold">EMPLOYEE</span>
+        </div>
+        <button onclick="handleLogout()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2 px-3.5 rounded-lg border border-slate-300 transition cursor-pointer">Logout</button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="flex border-b border-slate-200 bg-white rounded-t-xl px-4 pt-3 gap-6 shadow-sm overflow-x-auto text-sm font-semibold">
+      <!-- Visible to All Employees and Admin -->
+      <button onclick="switchView('work')" id="viewTabWork" class="pb-3 border-b-2 border-indigo-600 text-indigo-600 transition cursor-pointer whitespace-nowrap">Work Logs & Clock</button>
+      <button onclick="switchView('performance')" id="viewTabPerf" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition cursor-pointer whitespace-nowrap">My Performance</button>
+      <button onclick="switchView('leaves')" id="viewTabLeaves" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition cursor-pointer whitespace-nowrap">Request Leave</button>
+      <button onclick="switchView('reports')" id="viewTabReports" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition cursor-pointer whitespace-nowrap">Productivity Reports</button>
+
+      <!-- Admin-Only Navigation Tabs -->
+      <button onclick="switchView('adminEmployees')" id="viewTabAdminEmp" class="admin-only pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition cursor-pointer whitespace-nowrap">Award Points & Staff</button>
+      <button onclick="switchView('adminAttendance')" id="viewTabAtt" class="admin-only pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition cursor-pointer whitespace-nowrap">Monitor Attendance</button>
+      <button onclick="switchView('projects')" id="viewTabProj" class="admin-only pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition cursor-pointer whitespace-nowrap">Manage Projects</button>
+      <button onclick="switchView('settings')" id="viewTabSettings" class="admin-only pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition cursor-pointer whitespace-nowrap">System Settings</button>
+    </div>
+
+    <div id="alertBox" class="hidden p-4 rounded-lg font-medium text-sm transition-all duration-300"></div>
+
+    <!-- VIEW 1: WORK LOGS & ATTENDANCE CLOCK -->
+    <div id="viewWork" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+          <h2 class="text-lg font-bold text-slate-900 border-b pb-2">Attendance Clock</h2>
+          <p class="text-sm text-slate-600">Daily check-in / check-out tracker.</p>
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <button onclick="handleCheckIn()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition shadow-sm cursor-pointer">Check In</button>
+            <button onclick="handleCheckOut()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 px-4 rounded-lg transition shadow-sm cursor-pointer">Check Out</button>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+          <h2 class="text-lg font-bold text-slate-900 border-b pb-2">Submit Daily Work Log</h2>
+          <form onsubmit="handleSubmitLog(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Task Description</label>
+              <input id="taskDesc" type="text" placeholder="e.g., Implemented authentication API" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Hours Worked</label>
+              <input id="taskHours" type="number" step="0.5" min="0.5" max="24" value="8" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition shadow-sm cursor-pointer">Submit Log</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Admin Only: Work Log Verification Table -->
+      <div class="admin-only bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h2 class="text-lg font-bold text-slate-900">Verify Work Logs (Admin Approval)</h2>
+          <button onclick="fetchPendingLogs()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-lg border border-slate-300 transition cursor-pointer">Refresh</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+              <tr>
+                <th class="p-3">Log ID</th>
+                <th class="p-3">Employee</th>
+                <th class="p-3">Task</th>
+                <th class="p-3">Hours</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: VIEW PERFORMANCE -->
+    <div id="viewPerformance" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold uppercase text-slate-500">Performance Points</span>
+          <p id="perfPoints" class="text-3xl font-extrabold text-amber-500 mt-2">0</p>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold uppercase text-slate-500">Productivity Score</span>
+          <p id="perfScore" class="text-3xl font-extrabold text-indigo-600 mt-2">0%</p>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold uppercase text-slate-500">Total Approved Hours</span>
+          <p id="perfHours" class="text-3xl font-extrabold text-emerald-600 mt-2">0h</p>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold uppercase text-slate-500">Attendance Days</span>
+          <p id="perfDays" class="text-3xl font-extrabold text-slate-700 mt-2">0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: REQUEST LEAVE -->
+    <div id="viewLeaves" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 md:col-span-1">
+          <h2 class="text-lg font-bold text-slate-900 border-b pb-2">Apply for Leave</h2>
+          <form onsubmit="handleApplyLeave(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Leave Type</label>
+              <select id="leaveType" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none">
+                <option value="CASUAL">Casual Leave</option>
+                <option value="SICK">Sick Leave</option>
+                <option value="ANNUAL">Annual Leave</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Start Date</label>
+              <input id="leaveStartDate" type="date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">End Date</label>
+              <input id="leaveEndDate" type="date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Reason</label>
+              <textarea id="leaveReason" rows="2" placeholder="Explain reason..." required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none"></textarea>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition shadow-sm cursor-pointer">Submit Request</button>
+          </form>
+        </div>
+
+        <div class="md:col-span-2 space-y-6">
+          <!-- Admin Only: Pending Leave Approvals -->
+          <div class="admin-only bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+            <h2 class="text-lg font-bold text-slate-900 border-b pb-2">Pending Leave Requests (Admin Approval)</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+                  <tr>
+                    <th class="p-3">Employee</th>
+                    <th class="p-3">Type</th>
+                    <th class="p-3">Dates</th>
+                    <th class="p-3">Reason</th>
+                    <th class="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminLeavesTableBody" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Employee: Leave History -->
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+            <h2 class="text-lg font-bold text-slate-900 border-b pb-2">My Leave History</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+                  <tr>
+                    <th class="p-3">Type</th>
+                    <th class="p-3">Start Date</th>
+                    <th class="p-3">End Date</th>
+                    <th class="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="myLeavesTableBody" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: AWARD POINTS & STAFF DIRECTORY (ADMIN ONLY) -->
+    <div id="viewAdminEmployees" class="admin-only space-y-6 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 lg:col-span-1">
+          <h2 class="text-lg font-bold text-slate-900 border-b pb-2">Award Performance Points</h2>
+          <p class="text-xs text-slate-500">Reward employees for deliverables and leadership.</p>
+          <form onsubmit="handleAdminAwardPoints(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Select Employee</label>
+              <select id="awardEmployeeSelect" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">-- Choose Employee --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Points</label>
+              <div class="flex gap-2 mb-2">
+                <button type="button" onclick="setQuickPoints(10)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-xs font-semibold rounded border border-slate-300 cursor-pointer">+10</button>
+                <button type="button" onclick="setQuickPoints(25)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-xs font-semibold rounded border border-slate-300 cursor-pointer">+25</button>
+                <button type="button" onclick="setQuickPoints(50)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-xs font-semibold rounded border border-slate-300 cursor-pointer">+50</button>
+                <button type="button" onclick="setQuickPoints(100)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-xs font-semibold rounded border border-slate-300 cursor-pointer">+100</button>
+              </div>
+              <input id="adminAwardPointsVal" type="number" min="1" step="1" value="25" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-lg transition shadow-sm text-sm cursor-pointer">
+              Confirm & Award Points
+            </button>
+          </form>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 lg:col-span-2">
+          <div class="flex justify-between items-center border-b pb-2">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">Employee Directory</h2>
+              <p class="text-xs text-slate-500">Live roster of staff and point standings</p>
+            </div>
+            <button onclick="loadAdminEmployees()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-lg border border-slate-300 transition cursor-pointer">Refresh</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+                <tr>
+                  <th class="p-3">Emp ID</th>
+                  <th class="p-3">Name / Username</th>
+                  <th class="p-3">Department</th>
+                  <th class="p-3">Designation</th>
+                  <th class="p-3 text-center">Points</th>
+                  <th class="p-3 text-right">Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="adminEmployeesTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 5: MONITOR ATTENDANCE (ADMIN ONLY) -->
+    <div id="viewAdminAttendance" class="admin-only space-y-6 hidden">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h2 class="text-lg font-bold text-slate-900">Monitor Employee Attendance (Live Log)</h2>
+          <button onclick="fetchAttendanceLog()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-lg border border-slate-300 transition cursor-pointer">Refresh</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+              <tr>
+                <th class="p-3">ID</th>
+                <th class="p-3">Employee</th>
+                <th class="p-3">Date</th>
+                <th class="p-3">Check-In</th>
+                <th class="p-3">Check-Out</th>
+                <th class="p-3">Total Hours</th>
+                <th class="p-3">Status</th>
+              </tr>
+            </thead>
+            <tbody id="allAttendanceTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 6: MANAGE PROJECTS (ADMIN ONLY) -->
+    <div id="viewProjects" class="admin-only space-y-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 md:col-span-1">
+          <h2 class="text-lg font-bold text-slate-900 border-b pb-2">Add New Project</h2>
+          <form onsubmit="handleCreateProject(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Project Name</label>
+              <input id="projName" type="text" placeholder="e.g., Cloud Migration" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Client Name</label>
+              <input id="projClient" type="text" placeholder="e.g., Acme Corp" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Initial Status</label>
+              <select id="projStatus" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="NOT_STARTED">Not Started</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition shadow-sm cursor-pointer">Save Project</button>
+          </form>
+        </div>
+
+        <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex justify-between items-center border-b pb-2">
+            <h2 class="text-lg font-bold text-slate-900">Active Projects</h2>
+            <button onclick="fetchProjects()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-lg border border-slate-300 transition cursor-pointer">Refresh</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+                <tr>
+                  <th class="p-3">ID</th>
+                  <th class="p-3">Project Name</th>
+                  <th class="p-3">Client</th>
+                  <th class="p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody id="projectsTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 7: PRODUCTIVITY REPORTS (SHARED) -->
+    <div id="viewReports" class="space-y-6 hidden">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h2 class="text-lg font-bold text-slate-900">Productivity & Performance Summary</h2>
+          <button onclick="fetchReports()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-lg border border-slate-300 transition cursor-pointer">Refresh</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+              <tr>
+                <th class="p-3">ID</th>
+                <th class="p-3">Employee</th>
+                <th class="p-3">Department</th>
+                <th class="p-3">Points</th>
+                <th class="p-3">Productivity</th>
+                <th class="p-3">Days Present</th>
+                <th class="p-3">Total Approved Hours</th>
+                <th class="p-3">Leaves</th>
+              </tr>
+            </thead>
+            <tbody id="summaryTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 8: CONFIGURE SYSTEM SETTINGS (ADMIN ONLY) -->
+    <div id="viewSettings" class="admin-only space-y-6 hidden">
+      <div class="bg-white max-w-xl mx-auto p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-slate-900 border-b pb-2">Configure System Settings (Admin)</h2>
+        <form onsubmit="handleUpdateSettings(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Company / Workspace Name</label>
+            <input id="settingCompany" type="text" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Standard Daily Working Hours</label>
+            <input id="settingWorkHours" type="number" step="0.5" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Points Multiplier (Points per Approved Hour)</label>
+            <input id="settingPointsRate" type="number" step="1" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition shadow-sm cursor-pointer">Save Settings</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8080/cwls/api';
+    let currentUser = JSON.parse(localStorage.getItem('cwls_user') || 'null');
+
+    function applyRolePermissions() {
+      const role = (currentUser && currentUser.role) ? currentUser.role.toUpperCase() : 'EMPLOYEE';
+      const isAdmin = role === 'ADMIN';
+
+      // Explicitly show/hide elements marked as admin-only
+      document.querySelectorAll('.admin-only').forEach(el => {
+        if (isAdmin) {
+          el.style.display = '';
+          el.classList.remove('hidden');
+        } else {
+          el.style.setProperty('display', 'none', 'important');
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    function switchView(viewName) {
+      const role = (currentUser && currentUser.role) ? currentUser.role.toUpperCase() : 'EMPLOYEE';
+      const adminViews = ['adminEmployees', 'adminAttendance', 'projects', 'settings'];
+
+      // Prevent non-admin navigation to admin tabs
+      if (role !== 'ADMIN' && adminViews.includes(viewName)) {
+        viewName = 'work';
+      }
+
+      const views = ['work', 'performance', 'leaves', 'adminEmployees', 'adminAttendance', 'projects', 'reports', 'settings'];
+      views.forEach(v => {
+        const el = document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (el) {
+          if (v === viewName) {
+            el.classList.remove('hidden');
+            if (!el.classList.contains('admin-only') || role === 'ADMIN') {
+              el.style.display = '';
+            }
+          } else {
+            el.classList.add('hidden');
+          }
+        }
+      });
+
+      const tabMap = {
+        work: 'viewTabWork',
+        performance: 'viewTabPerf',
+        leaves: 'viewTabLeaves',
+        adminEmployees: 'viewTabAdminEmp',
+        adminAttendance: 'viewTabAtt',
+        projects: 'viewTabProj',
+        reports: 'viewTabReports',
+        settings: 'viewTabSettings'
+      };
+
+      for (const [k, id] of Object.entries(tabMap)) {
+        const tab = document.getElementById(id);
+        if (tab) {
+          tab.className = (k === viewName)
+            ? 'pb-3 border-b-2 border-indigo-600 text-indigo-600 transition cursor-pointer whitespace-nowrap'
+            : 'pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition cursor-pointer whitespace-nowrap';
+        }
+      }
+
+      applyRolePermissions();
+
+      if (viewName === 'work') fetchPendingLogs();
+      if (viewName === 'performance') fetchPerformance();
+      if (viewName === 'leaves') fetchLeaves();
+      if (viewName === 'adminEmployees' && role === 'ADMIN') loadAdminEmployees();
+      if (viewName === 'adminAttendance' && role === 'ADMIN') fetchAttendanceLog();
+      if (viewName === 'projects' && role === 'ADMIN') fetchProjects();
+      if (viewName === 'reports') fetchReports();
+      if (viewName === 'settings' && role === 'ADMIN') loadSettings();
+    }
+
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('loginForm');
+      const regForm = document.getElementById('registerForm');
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+      const modalTitle = document.getElementById('modalTitle');
+      document.getElementById('modalAlert').classList.add('hidden');
+
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        regForm.classList.add('hidden');
+        tabLogin.className = 'w-1/2 py-2 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition cursor-pointer';
+        tabRegister.className = 'w-1/2 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition cursor-pointer';
+        modalTitle.textContent = 'Sign in to CWLS';
+      } else {
+        loginForm.classList.add('hidden');
+        regForm.classList.remove('hidden');
+        tabRegister.className = 'w-1/2 py-2 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition cursor-pointer';
+        tabLogin.className = 'w-1/2 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition cursor-pointer';
+        modalTitle.textContent = 'Create Employee Account';
+      }
+    }
+
+    function checkAuth() {
+      if (!currentUser) {
+        document.getElementById('loginModal').classList.remove('hidden');
+      } else {
+        document.getElementById('loginModal').classList.add('hidden');
+        document.getElementById('navUserName').textContent = currentUser.name || currentUser.username;
+        document.getElementById('navRoleBadge').textContent = currentUser.role || 'EMPLOYEE';
+
+        applyRolePermissions();
+
+        if (currentUser.role === 'ADMIN') {
+          fetchPendingLogs();
+          loadAdminEmployees();
+        } else {
+          switchView('work');
+        }
+        loadSettings();
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('loginUsername').value;
+      const p = document.getElementById('loginPassword').value;
+      try {
+        const res = await fetch(`${API_BASE}/auth/login?username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Login failed');
+        currentUser = data;
+        localStorage.setItem('cwls_user', JSON.stringify(data));
+        applyRolePermissions();
+        checkAuth();
+        notify(`Welcome back, ${data.name}!`);
+      } catch (err) {
+        const el = document.getElementById('modalAlert');
+        el.className = 'p-3 text-sm font-medium rounded-lg bg-rose-100 text-rose-800';
+        el.textContent = err.message;
+        el.classList.remove('hidden');
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('regName').value;
+      const email = document.getElementById('regEmail').value;
+      const dept = document.getElementById('regDept').value;
+      const desig = document.getElementById('regDesig').value;
+      const username = document.getElementById('regUsername').value;
+      const password = document.getElementById('regPassword').value;
+
+      try {
+        const url = `${API_BASE}/auth/register?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&department=${encodeURIComponent(dept)}&designation=${encodeURIComponent(desig)}`;
+        const res = await fetch(url, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+        const loginRes = await fetch(`${API_BASE}/auth/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, { method: 'POST' });
+        const loginData = await loginRes.json();
+        currentUser = loginData;
+        localStorage.setItem('cwls_user', JSON.stringify(loginData));
+        applyRolePermissions();
+        checkAuth();
+        notify(`Account created! Welcome, ${name}!`);
+      } catch (err) {
+        const el = document.getElementById('modalAlert');
+        el.className = 'p-3 text-sm font-medium rounded-lg bg-rose-100 text-rose-800';
+        el.textContent = err.message;
+        el.classList.remove('hidden');
+      }
+    }
+
+    async function handleLogout() {
+      await fetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+      currentUser = null;
+      localStorage.removeItem('cwls_user');
+      switchAuthTab('login');
+      checkAuth();
+    }
+
+    function notify(message, isError = false) {
+      const box = document.getElementById('alertBox');
+      box.className = `p-4 rounded-lg font-medium text-sm transition-all duration-300 ${
+        isError ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+      }`;
+      box.textContent = message;
+      box.classList.remove('hidden');
+      setTimeout(() => box.classList.add('hidden'), 5000);
+    }
+
+    // Attendance & Work Logs
+    async function handleCheckIn() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch(`${API_BASE}/attendance/check-in/${currentUser.employeeId}`, { method: 'POST' });
+        const data = await res.json();
+        notify(`Checked in successfully at ${data.checkInTime || data.date}!`);
+      } catch (err) { notify(err.message, true); }
+    }
+
+    async function handleCheckOut() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch(`${API_BASE}/attendance/check-out/${currentUser.employeeId}`, { method: 'POST' });
+        const data = await res.json();
+        notify(`Checked out! Total hours: ${data.totalHours || '0.0'}`);
+      } catch (err) { notify(err.message, true); }
+    }
+
+    async function handleSubmitLog(e) {
+      e.preventDefault();
+      if (!currentUser) return;
+      const task = document.getElementById('taskDesc').value;
+      const hours = document.getElementById('taskHours').value;
+      try {
+        const res = await fetch(`${API_BASE}/worklogs/submit/${currentUser.employeeId}?task=${encodeURIComponent(task)}&hours=${encodeURIComponent(hours)}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Submission failed');
+        notify('Work log submitted!');
+        document.getElementById('taskDesc').value = '';
+        fetchPendingLogs();
+      } catch (err) { notify(err.message, true); }
+    }
+
+    async function fetchPendingLogs() {
+      if (!currentUser || currentUser.role !== 'ADMIN') return;
+      const tbody = document.getElementById('logsTableBody');
+      try {
+        const res = await fetch(`${API_BASE}/admin/worklogs/pending`);
+        const logs = await res.json();
+        tbody.innerHTML = logs.length ? logs.map(l => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-mono font-bold text-indigo-600">#${l.workLogId}</td>
+            <td class="p-3 font-medium">${l.employee?.user?.name || ('Emp #' + l.employee?.employeeId)}</td>
+            <td class="p-3 text-slate-700">${l.taskDescription}</td>
+            <td class="p-3 font-semibold">${l.hoursWorked}h</td>
+            <td class="p-3"><span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-semibold uppercase">${l.status}</span></td>
+            <td class="p-3 text-right">
+              <button onclick="approveLog(${l.workLogId})" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded font-medium cursor-pointer">Approve</button>
+            </td>
+          </tr>
+        `).join('') : '<tr><td colspan="6" class="p-4 text-center text-slate-400">No pending work logs.</td></tr>';
+      } catch (err) { tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-rose-500">${err.message}</td></tr>`; }
+    }
+
+    async function approveLog(id) {
+      await fetch(`${API_BASE}/admin/worklogs/approve/${id}`, { method: 'PUT' });
+      notify(`Work log #${id} approved! Points awarded automatically.`);
+      fetchPendingLogs();
+    }
+
+    // Performance
+    async function fetchPerformance() {
+      if (!currentUser) return;
+      const res = await fetch(`${API_BASE}/reports/summary/${currentUser.employeeId}`);
+      const s = await res.json();
+      document.getElementById('perfPoints').textContent = s.points || 0;
+      document.getElementById('perfScore').textContent = (s.productivityScore || 0) + '%';
+      document.getElementById('perfHours').textContent = (s.totalApprovedHours || 0).toFixed(1) + 'h';
+      document.getElementById('perfDays').textContent = s.totalDaysPresent || 0;
+    }
+
+    // Admin Employees & Points Directory
+    async function loadAdminEmployees() {
+      if (!currentUser || currentUser.role !== 'ADMIN') return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/employees`);
+        const employees = await res.json();
+
+        const select = document.getElementById('awardEmployeeSelect');
+        if (select) {
+          select.innerHTML = '<option value="">-- Choose Employee --</option>' +
+            employees.map(e => `<option value="${e.employeeId}">#${e.employeeId} - ${e.name} (${e.department})</option>`).join('');
+        }
+
+        const tbody = document.getElementById('adminEmployeesTableBody');
+        if (tbody) {
+          tbody.innerHTML = employees.length ? employees.map(e => `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3 font-mono font-bold text-indigo-600">#${e.employeeId}</td>
+              <td class="p-3">
+                <div class="font-bold text-slate-900">${e.name}</div>
+                <div class="text-xs text-slate-500 font-mono">@${e.username} • ${e.email}</div>
+              </td>
+              <td class="p-3 text-slate-700">${e.department}</td>
+              <td class="p-3 text-slate-600">${e.designation}</td>
+              <td class="p-3 text-center">
+                <span class="inline-block bg-amber-100 text-amber-800 font-extrabold text-sm px-3 py-1 rounded-full">
+                  ${e.points} pts
+                </span>
+              </td>
+              <td class="p-3 text-right">
+                <button onclick="selectForAward(${e.employeeId})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs px-2.5 py-1.5 rounded font-medium transition cursor-pointer">
+                  Select
+                </button>
+              </td>
+            </tr>
+          `).join('') : '<tr><td colspan="6" class="p-4 text-center text-slate-400">No employees found.</td></tr>';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function setQuickPoints(val) {
+      document.getElementById('adminAwardPointsVal').value = val;
+    }
+
+    function selectForAward(empId) {
+      document.getElementById('awardEmployeeSelect').value = empId;
+      document.getElementById('adminAwardPointsVal').focus();
+    }
+
+    async function handleAdminAwardPoints(e) {
+      e.preventDefault();
+      const empId = document.getElementById('awardEmployeeSelect').value;
+      const points = document.getElementById('adminAwardPointsVal').value;
+
+      if (!empId) {
+        notify('Please select an employee first', true);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/points/award/${empId}?points=${points}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to award points');
+        notify(`Successfully awarded +${points} points to Employee #${empId}!`);
+        loadAdminEmployees();
+      } catch (err) {
+        notify(err.message, true);
+      }
+    }
+
+    // Leaves
+    async function handleApplyLeave(e) {
+      e.preventDefault();
+      if (!currentUser) return;
+      const type = document.getElementById('leaveType').value;
+      const start = document.getElementById('leaveStartDate').value;
+      const end = document.getElementById('leaveEndDate').value;
+      const reason = document.getElementById('leaveReason').value;
+
+      await fetch(`${API_BASE}/leave/apply/${currentUser.employeeId}?startDate=${start}&endDate=${end}&leaveType=${type}&reason=${encodeURIComponent(reason)}`, { method: 'POST' });
+      notify('Leave request submitted!');
+      document.getElementById('leaveReason').value = '';
+      fetchLeaves();
+    }
+
+    async function fetchLeaves() {
+      if (!currentUser) return;
+      const myRes = await fetch(`${API_BASE}/leave/my-leaves/${currentUser.employeeId}`);
+      const myLeaves = await myRes.json();
+      const myTbody = document.getElementById('myLeavesTableBody');
+      myTbody.innerHTML = myLeaves.length ? myLeaves.map(l => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-3 font-semibold">${l.leaveType}</td>
+          <td class="p-3">${l.startDate}</td>
+          <td class="p-3">${l.endDate}</td>
+          <td class="p-3"><span class="px-2 py-0.5 text-xs font-semibold rounded uppercase ${
+            l.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : l.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+          }">${l.status}</span></td>
+        </tr>
+      `).join('') : '<tr><td colspan="4" class="p-4 text-center text-slate-400">No leaves found.</td></tr>';
+
+      if (currentUser.role === 'ADMIN') {
+        const adminRes = await fetch(`${API_BASE}/admin/leave/pending`);
+        const adminLeaves = await adminRes.json();
+        const adminTbody = document.getElementById('adminLeavesTableBody');
+        adminTbody.innerHTML = adminLeaves.length ? adminLeaves.map(l => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-semibold">${l.employee?.user?.name || ('Emp #' + l.employee?.employeeId)}</td>
+            <td class="p-3">${l.leaveType}</td>
+            <td class="p-3 text-xs text-slate-600">${l.startDate} to ${l.endDate}</td>
+            <td class="p-3 text-slate-700">${l.reason}</td>
+            <td class="p-3 text-right space-x-1">
+              <button onclick="setLeaveStatus(${l.leaveId}, 'APPROVED')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1 rounded cursor-pointer">Approve</button>
+              <button onclick="setLeaveStatus(${l.leaveId}, 'REJECTED')" class="bg-rose-600 hover:bg-rose-700 text-white text-xs px-2.5 py-1 rounded cursor-pointer">Reject</button>
+            </td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" class="p-4 text-center text-slate-400">No pending leave requests.</td></tr>';
+      }
+    }
+
+    async function setLeaveStatus(id, st) {
+      await fetch(`${API_BASE}/admin/leave/status/${id}?status=${st}`, { method: 'PUT' });
+      notify(`Leave #${id} set to ${st}!`);
+      fetchLeaves();
+    }
+
+    // Attendance Log
+    async function fetchAttendanceLog() {
+      if (!currentUser || currentUser.role !== 'ADMIN') return;
+      const res = await fetch(`${API_BASE}/admin/attendance/all`);
+      const list = await res.json();
+      const tbody = document.getElementById('allAttendanceTableBody');
+      tbody.innerHTML = list.length ? list.map(a => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-3 font-mono font-bold text-indigo-600">#${a.attendanceId}</td>
+          <td class="p-3 font-semibold">${a.employee?.user?.name || ('Emp #' + a.employee?.employeeId)}</td>
+          <td class="p-3">${a.date}</td>
+          <td class="p-3 text-emerald-700 font-medium">${a.checkInTime || '-'}</td>
+          <td class="p-3 text-amber-700 font-medium">${a.checkOutTime || '-'}</td>
+          <td class="p-3 font-bold">${a.totalHours || '0.0'} hrs</td>
+          <td class="p-3"><span class="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-semibold uppercase">${a.status}</span></td>
+        </tr>
+      `).join('') : '<tr><td colspan="7" class="p-4 text-center text-slate-400">No attendance entries recorded.</td></tr>';
+    }
+
+    // Projects
+    async function handleCreateProject(e) {
+      e.preventDefault();
+      const name = document.getElementById('projName').value.trim();
+      const client = document.getElementById('projClient').value.trim();
+      const status = document.getElementById('projStatus').value;
+
+      try {
+        const params = new URLSearchParams();
+        params.append('projectName', name);
+        params.append('clientName', client);
+        params.append('status', status);
+
+        const res = await fetch(`${API_BASE}/admin/projects?${params.toString()}`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to create project');
+
+        notify(`Project "${name}" saved successfully!`);
+        document.getElementById('projName').value = '';
+        document.getElementById('projClient').value = '';
+        fetchProjects();
+      } catch (err) {
+        notify(err.message, true);
+      }
+    }
+
+    async function fetchProjects() {
+      try {
+        const res = await fetch(`${API_BASE}/projects`);
+        const projects = await res.json();
+        const tbody = document.getElementById('projectsTableBody');
+        tbody.innerHTML = projects.length ? projects.map(p => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-mono font-bold text-indigo-600">#${p.projectId}</td>
+            <td class="p-3 font-semibold text-slate-900">${p.projectName}</td>
+            <td class="p-3 text-slate-600">${p.clientName}</td>
+            <td class="p-3"><span class="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-semibold uppercase">${p.status}</span></td>
+          </tr>
+        `).join('') : '<tr><td colspan="4" class="p-4 text-center text-slate-400">No projects created yet.</td></tr>';
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Reports (Shared for Everyone)
+    async function fetchReports() {
+      try {
+        const res = await fetch(`${API_BASE}/reports/all-summary`);
+        const data = await res.json();
+        const tbody = document.getElementById('summaryTableBody');
+        tbody.innerHTML = data.map(e => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-mono text-indigo-600 font-bold">#${e.employeeId}</td>
+            <td class="p-3 font-semibold text-slate-900">${e.name}</td>
+            <td class="p-3">${e.department}</td>
+            <td class="p-3 font-bold text-amber-600">${e.points || 0} pts</td>
+            <td class="p-3 font-bold text-indigo-600">${e.productivityScore || 0}%</td>
+            <td class="p-3 font-bold text-slate-700">${e.totalDaysPresent}</td>
+            <td class="p-3 font-bold text-emerald-600">${(e.totalApprovedHours || 0).toFixed(1)} hrs</td>
+            <td class="p-3 font-bold text-slate-600">${e.approvedLeavesCount}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Settings
+    async function loadSettings() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/settings`);
+        const s = await res.json();
+        if (document.getElementById('settingCompany')) document.getElementById('settingCompany').value = s.companyName || 'CWLS Enterprise';
+        document.getElementById('sysCompanyName').textContent = s.companyName || 'CWLS Enterprise';
+        if (document.getElementById('settingWorkHours')) document.getElementById('settingWorkHours').value = s.standardWorkHours || '8.0';
+        if (document.getElementById('settingPointsRate')) document.getElementById('settingPointsRate').value = s.pointsPerHour || '10';
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function handleUpdateSettings(e) {
+      e.preventDefault();
+      const comp = document.getElementById('settingCompany').value.trim();
+      const wh = document.getElementById('settingWorkHours').value;
+      const pr = document.getElementById('settingPointsRate').value;
+
+      try {
+        const params = new URLSearchParams();
+        params.append('companyName', comp);
+        params.append('standardWorkHours', wh);
+        params.append('pointsPerHour', pr);
+
+        const res = await fetch(`${API_BASE}/admin/settings?${params.toString()}`, {
+          method: 'POST'
+        });
+        if (!res.ok) throw new Error('Failed to update system settings');
+
+        notify('System settings updated successfully!');
+        loadSettings();
+      } catch (err) {
+        notify(err.message, true);
+      }
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>

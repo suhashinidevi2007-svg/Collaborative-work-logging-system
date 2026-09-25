@@ -1,0 +1,80 @@
+package com.cwls.service;
+
+import com.cwls.model.Attendance;
+import com.cwls.model.Employee;
+import com.cwls.model.WorkLog;
+import com.cwls.repository.AttendanceRepository;
+import com.cwls.repository.EmployeeRepository;
+import com.cwls.repository.WorkLogRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@Service
+@Transactional
+public class CWLSService {
+
+    private final AttendanceRepository attendanceRepo;
+    private final WorkLogRepository workLogRepo;
+    private final EmployeeRepository employeeRepo;
+
+    public CWLSService(AttendanceRepository attendanceRepo, 
+                       WorkLogRepository workLogRepo, 
+                       EmployeeRepository employeeRepo) {
+        this.attendanceRepo = attendanceRepo;
+        this.workLogRepo = workLogRepo;
+        this.employeeRepo = employeeRepo;
+    }
+
+    public Attendance checkIn(Long employeeId) {
+        Employee emp = employeeRepo.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
+
+        Attendance att = attendanceRepo.findByEmployeeAndDate(emp, LocalDate.now())
+                .orElseGet(() -> {
+                    Attendance newAtt = new Attendance();
+                    newAtt.setEmployee(emp);
+                    return newAtt;
+                });
+
+        att.clockIn();
+        return attendanceRepo.save(att);
+    }
+
+    public Attendance checkOut(Long employeeId) {
+        Employee emp = employeeRepo.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
+
+        Attendance att = attendanceRepo.findByEmployeeAndDate(emp, LocalDate.now())
+                .orElseThrow(() -> new RuntimeException("No active check-in record found for today"));
+
+        att.clockOut();
+        return attendanceRepo.save(att);
+    }
+
+    public WorkLog submitLog(Long employeeId, String task, Double hours) {
+        Employee emp = employeeRepo.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
+
+        WorkLog log = new WorkLog();
+        log.setEmployee(emp);
+        log.setTaskDescription(task);
+        log.setHoursWorked(hours);
+        return workLogRepo.save(log);
+    }
+
+    public WorkLog verifyLog(Long logId, String status) {
+        WorkLog log = workLogRepo.findById(logId)
+                .orElseThrow(() -> new RuntimeException("Work log not found with ID: " + logId));
+
+        log.setStatus(status.toUpperCase());
+        return workLogRepo.save(log);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkLog> getPendingLogs() {
+        return workLogRepo.findByStatus("PENDING");
+    }
+}

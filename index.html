@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CWLS - Employee & Admin Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans p-6">
+
+  <!-- Auth Modal Overlay -->
+  <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white max-w-md w-full rounded-2xl shadow-xl border border-slate-200 p-8 space-y-6">
+      
+      <!-- Modal Header & Tab Switcher -->
+      <div>
+        <h2 id="modalTitle" class="text-2xl font-bold text-center text-slate-900">Sign in to CWLS</h2>
+        <div class="flex border-b border-slate-200 mt-4">
+          <button id="tabLogin" onclick="switchAuthTab('login')" class="w-1/2 py-2 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition">
+            Sign In
+          </button>
+          <button id="tabRegister" onclick="switchAuthTab('register')" class="w-1/2 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition">
+            Create Account
+          </button>
+        </div>
+      </div>
+
+      <!-- Error / Success Alert Box inside Modal -->
+      <div id="modalAlert" class="hidden p-3 text-sm font-medium rounded-lg transition-all"></div>
+
+      <!-- Tab 1: Login Form -->
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username</label>
+          <input id="loginUsername" type="text" value="john_doe" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password</label>
+          <input id="loginPassword" type="password" value="password123" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition shadow-sm">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Tab 2: Register Form -->
+      <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-3 hidden">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Full Name</label>
+          <input id="regName" type="text" placeholder="e.g., Alice Smith" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Email</label>
+          <input id="regEmail" type="email" placeholder="alice@cwls.com" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Department</label>
+            <input id="regDept" type="text" value="Engineering" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Designation</label>
+            <input id="regDesig" type="text" value="Developer" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username</label>
+          <input id="regUsername" type="text" placeholder="alice_smith" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password</label>
+          <input id="regPassword" type="password" placeholder="••••••••" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition shadow-sm mt-2">
+          Create Account
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Main Dashboard App -->
+  <div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <header class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Continuous Work Logging System (CWLS)</h1>
+        <p class="text-sm text-slate-500">Connected to Spring Boot & Tomcat 9</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="text-right">
+          <span id="navUserName" class="block font-bold text-slate-800 text-sm">Guest</span>
+          <span id="navRoleBadge" class="inline-block bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded font-mono uppercase">Unknown</span>
+        </div>
+        <button onclick="handleLogout()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2 px-3 rounded-lg border border-slate-300 transition">
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Notification Banner -->
+    <div id="alertBox" class="hidden p-4 rounded-lg font-medium text-sm transition-all duration-300"></div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Section 1: Attendance Operations -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-slate-900 border-b pb-2">1. Attendance Clock</h2>
+        <p class="text-sm text-slate-600">Log today's clock-in or record total elapsed hours with clock-out.</p>
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <button onclick="handleCheckIn()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition shadow-sm">
+            Check In
+          </button>
+          <button onclick="handleCheckOut()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 px-4 rounded-lg transition shadow-sm">
+            Check Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 2: Submit Work Log -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h2 class="text-lg font-bold text-slate-900 border-b pb-2">2. Submit Daily Work Log</h2>
+        <form onsubmit="handleSubmitLog(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Task Description</label>
+            <input id="taskDesc" type="text" placeholder="e.g., Implementing new microservice routes" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Hours Worked</label>
+            <input id="taskHours" type="number" step="0.5" min="0.5" max="24" value="8" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition shadow-sm">
+            Submit Log
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- Section 3: Admin Approval Queue -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">3. Admin Work Log Approvals</h2>
+          <p class="text-xs text-slate-500">Live queue of pending logs awaiting supervisor approval</p>
+        </div>
+        <button onclick="fetchPendingLogs()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-lg border border-slate-300 transition">
+          Refresh List
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+            <tr>
+              <th class="p-3">Log ID</th>
+              <th class="p-3">Employee</th>
+              <th class="p-3">Task</th>
+              <th class="p-3">Hours</th>
+              <th class="p-3">Status</th>
+              <th class="p-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="6" class="p-4 text-center text-slate-400">Loading pending logs...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Live JSON Response Console -->
+    <div class="bg-slate-900 text-slate-200 p-5 rounded-xl font-mono text-xs shadow-inner space-y-2">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+        <span class="font-bold text-slate-400">RAW API RESPONSE CONSOLE</span>
+        <button onclick="document.getElementById('consoleOutput').textContent = '// Awaiting requests...'" class="hover:text-white">Clear</button>
+      </div>
+      <pre id="consoleOutput" class="max-h-48 overflow-y-auto whitespace-pre-wrap leading-relaxed">// Awaiting requests...</pre>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8080/cwls/api';
+    let currentUser = JSON.parse(localStorage.getItem('cwls_user') || 'null');
+
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('loginForm');
+      const regForm = document.getElementById('registerForm');
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalAlert = document.getElementById('modalAlert');
+
+      modalAlert.classList.add('hidden');
+
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        regForm.classList.add('hidden');
+        tabLogin.className = 'w-1/2 py-2 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition';
+        tabRegister.className = 'w-1/2 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition';
+        modalTitle.textContent = 'Sign in to CWLS';
+      } else {
+        loginForm.classList.add('hidden');
+        regForm.classList.remove('hidden');
+        tabRegister.className = 'w-1/2 py-2 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition';
+        tabLogin.className = 'w-1/2 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition';
+        modalTitle.textContent = 'Create Employee Account';
+      }
+    }
+
+    function showModalAlert(message, isError = true) {
+      const el = document.getElementById('modalAlert');
+      el.className = `p-3 text-sm font-medium rounded-lg ${isError ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`;
+      el.textContent = message;
+      el.classList.remove('hidden');
+    }
+
+    function checkAuth() {
+      if (!currentUser) {
+        document.getElementById('loginModal').classList.remove('hidden');
+      } else {
+        document.getElementById('loginModal').classList.add('hidden');
+        document.getElementById('navUserName').textContent = currentUser.name || currentUser.username;
+        document.getElementById('navRoleBadge').textContent = currentUser.role || 'EMPLOYEE';
+        fetchPendingLogs();
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('loginUsername').value;
+      const p = document.getElementById('loginPassword').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login?username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Login failed');
+
+        currentUser = data;
+        localStorage.setItem('cwls_user', JSON.stringify(data));
+        document.getElementById('modalAlert').classList.add('hidden');
+        checkAuth();
+        notify(`Welcome back, ${data.name}!`);
+      } catch (err) {
+        showModalAlert(err.message, true);
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('regName').value;
+      const email = document.getElementById('regEmail').value;
+      const dept = document.getElementById('regDept').value;
+      const desig = document.getElementById('regDesig').value;
+      const username = document.getElementById('regUsername').value;
+      const password = document.getElementById('regPassword').value;
+
+      try {
+        const url = `${API_BASE}/auth/register?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&department=${encodeURIComponent(dept)}&designation=${encodeURIComponent(desig)}`;
+        const res = await fetch(url, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+        // Automatically sign in with newly created account
+        const loginRes = await fetch(`${API_BASE}/auth/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, { method: 'POST' });
+        const loginData = await loginRes.json();
+
+        currentUser = loginData;
+        localStorage.setItem('cwls_user', JSON.stringify(loginData));
+        checkAuth();
+        notify(`Account created! Welcome, ${name}!`);
+      } catch (err) {
+        showModalAlert(err.message, true);
+      }
+    }
+
+    async function handleLogout() {
+      await fetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+      currentUser = null;
+      localStorage.removeItem('cwls_user');
+      switchAuthTab('login');
+      checkAuth();
+    }
+
+    function notify(message, isError = false) {
+      const box = document.getElementById('alertBox');
+      box.className = `p-4 rounded-lg font-medium text-sm transition-all duration-300 ${
+        isError ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+      }`;
+      box.textContent = message;
+      box.classList.remove('hidden');
+      setTimeout(() => box.classList.add('hidden'), 5000);
+    }
+
+    function logConsole(data) {
+      document.getElementById('consoleOutput').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function handleCheckIn() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch(`${API_BASE}/attendance/check-in/${currentUser.employeeId}`, { method: 'POST' });
+        const data = await res.json();
+        logConsole(data);
+        if (!res.ok) throw new Error(data.message || 'Check-in failed');
+        notify(`Checked in successfully at ${data.checkInTime || data.date}!`);
+      } catch (err) {
+        notify(err.message, true);
+      }
+    }
+
+    async function handleCheckOut() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch(`${API_BASE}/attendance/check-out/${currentUser.employeeId}`, { method: 'POST' });
+        const data = await res.json();
+        logConsole(data);
+        if (!res.ok) throw new Error(data.message || 'Check-out failed');
+        notify(`Checked out! Total hours calculated: ${data.totalHours || '0.0'}`);
+      } catch (err) {
+        notify(err.message, true);
+      }
+    }
+
+    async function handleSubmitLog(e) {
+      e.preventDefault();
+      if (!currentUser) return;
+      const task = document.getElementById('taskDesc').value;
+      const hours = document.getElementById('taskHours').value;
+
+      try {
+        const url = `${API_BASE}/worklogs/submit/${currentUser.employeeId}?task=${encodeURIComponent(task)}&hours=${encodeURIComponent(hours)}`;
+        const res = await fetch(url, { method: 'POST' });
+        const data = await res.json();
+        logConsole(data);
+        if (!res.ok) throw new Error(data.message || 'Submission failed');
+        notify(`Work log #${data.workLogId} submitted successfully!`);
+        document.getElementById('taskDesc').value = '';
+        fetchPendingLogs();
+      } catch (err) {
+        notify(err.message, true);
+      }
+    }
+
+    async function fetchPendingLogs() {
+      const tbody = document.getElementById('logsTableBody');
+      try {
+        const res = await fetch(`${API_BASE}/admin/worklogs/pending`);
+        const logs = await res.json();
+        logConsole(logs);
+
+        if (!Array.isArray(logs) || logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">No pending work logs found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = logs.map(log => `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-3 font-mono font-bold text-indigo-600">#${log.workLogId}</td>
+            <td class="p-3">${log.employee?.user?.name || ('Emp #' + (log.employee?.employeeId || '-'))}</td>
+            <td class="p-3 text-slate-700">${log.taskDescription}</td>
+            <td class="p-3 font-semibold">${log.hoursWorked} hrs</td>
+            <td class="p-3"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-semibold uppercase">${log.status}</span></td>
+            <td class="p-3 text-right">
+              <button onclick="approveLog(${log.workLogId})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3 py-1 rounded text-xs transition">
+                Approve
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-rose-500">Failed to load logs: ${err.message}</td></tr>`;
+      }
+    }
+
+    async function approveLog(logId) {
+      try {
+        const res = await fetch(`${API_BASE}/admin/worklogs/approve/${logId}`, { method: 'PUT' });
+        const data = await res.json();
+        logConsole(data);
+        if (!res.ok) throw new Error(data.message || 'Approval failed');
+        notify(`Work log #${logId} approved!`);
+        fetchPendingLogs();
+      } catch (err) {
+        notify(err.message, true);
+      }
+    }
+
+    // Initialize state
+    checkAuth();
+  </script>
+</body>
+</html>
