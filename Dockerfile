@@ -29,4 +29,5 @@ COPY --from=build /workspace/build/libs/cwls.war app.war
 ENV PORT=8080
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.war"]
+# Optimized for cloud containers (Render 512MB RAM free tier)
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-Xss512k", "-jar", "app.war"]

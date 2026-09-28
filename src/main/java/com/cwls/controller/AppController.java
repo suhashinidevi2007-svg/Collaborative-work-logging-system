@@ -41,6 +41,11 @@ public class AppController {
             "companyName", "CWLS Enterprise"
     ));
 
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, String>> healthCheck() {
+        return ResponseEntity.ok(Map.of("status", "UP", "service", "CWLS-Backend"));
+    }
+
     // ==========================================
     // 0. ADMIN EMPLOYEE DIRECTORY & ROSTER
     // ==========================================
