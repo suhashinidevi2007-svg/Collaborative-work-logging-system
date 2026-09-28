@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: cwls-application
+    env: docker
+    plan: free
+    branch: main
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: SPRING_PROFILES_ACTIVE
+        value: h2
