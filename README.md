@@ -1,41 +1,53 @@
 # Collaborative Work Logging System (CWLS)
 
-A full-stack collaborative work logging, attendance, and employee performance tracking system built with **Spring Boot 2.7**, **Spring Data JPA**, **MySQL**, and an interactive web frontend.
+A full-stack collaborative work logging, attendance, and employee performance tracking system built with **Spring Boot 2.7**, **Spring Data JPA**, **Supabase (PostgreSQL) / MySQL**, and an interactive web frontend.
 
 ---
 
-## 🚀 Live Cloud Deployment
+## ⚡ Recommended Cloud Deployment: Render + Supabase (100% Free)
 
-### Option 1: Railway (Recommended — 2 Minutes, Full MySQL Support)
+This is the most powerful combination: **Supabase** provides a free cloud PostgreSQL database, and **Render** hosts your web service for free!
 
-1. Go to [Railway.app](https://railway.app) and sign in with GitHub.
-2. Click **New Project** > **Deploy from GitHub repo**.
-3. Select `suhashinidevi2007-svg/Collaborative-work-logging-system`.
-4. In the same project, click **New** > **Database** > **Add MySQL**.
-5. Click on your CWLS app service > **Variables** > add:
-   - `SPRING_DATASOURCE_URL` = `${{MySQL.MYSQL_URL}}` (or JDBC format `jdbc:mysql://${{MySQL.MYSQLHOST}}:${{MySQL.MYSQLPORT}}/${{MySQL.MYSQLDATABASE}}`)
-   - `SPRING_DATASOURCE_USERNAME` = `${{MySQL.MYSQLUSER}}`
-   - `SPRING_DATASOURCE_PASSWORD` = `${{MySQL.MYSQLPASSWORD}}`
-6. Click **Generate Domain** under **Settings** > **Networking**.
-7. Your app is live!
+### Step 1: Create a Free Database on Supabase
+1. Go to [supabase.com](https://supabase.com) and create an account.
+2. Click **New Project** (give it any name, e.g. `cwls-db`, and choose a secure database password).
+3. Once the project is ready, go to **Project Settings** (gear icon) > **Database**.
+4. Scroll to **Connection parameters** or **Connection String**:
+   * Switch to the **URI** or **JDBC** tab.
+   * If using **Transaction Pooler** (recommended for IPv4 cloud hosts like Render):
+     * Host: `aws-0-[region].pooler.supabase.com`
+     * Port: `6543`
+     * Database: `postgres`
+     * User: `postgres.[project-ref]`
+     * JDBC URL format:
+       `jdbc:postgresql://aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require`
+
+### Step 2: Deploy Web Service on Render
+1. Go to [render.com](https://render.com) and click **New +** > **Web Service**.
+2. Connect your GitHub repository `suhashinidevi2007-svg/Collaborative-work-logging-system`.
+3. Choose **Docker** as the Runtime (it will automatically use the `Dockerfile`).
+4. Select the **Free** instance plan.
+5. Under **Environment Variables**, add:
+   * `SPRING_DATASOURCE_URL` = `jdbc:postgresql://<SUPABASE_HOST>:<PORT>/postgres?sslmode=require`
+   * `SPRING_DATASOURCE_USERNAME` = `<SUPABASE_USER>`
+   * `SPRING_DATASOURCE_PASSWORD` = `<SUPABASE_PASSWORD>`
+6. Click **Deploy Web Service**. Render will build and deploy your app with a public URL!
 
 ---
 
-### Option 2: Render (Free Web Service)
+## 🚀 Alternative Deployments
 
-1. Go to [Render.com](https://render.com) and create an account.
-2. Click **New +** > **Web Service**.
-3. Connect your GitHub repository `suhashinidevi2007-svg/Collaborative-work-logging-system`.
-4. Choose **Docker** as the Runtime (it will automatically detect the provided `Dockerfile`).
-5. Choose the **Free** instance type.
-6. Under **Environment Variables**, set:
-   - For Instant Zero-Config In-Memory DB:
-     - `SPRING_PROFILES_ACTIVE` = `h2`
-   - Or For Cloud MySQL (Aiven / Supabase / Clever Cloud / Railway):
-     - `SPRING_DATASOURCE_URL` = `jdbc:mysql://<host>:<port>/<db>?useSSL=true`
-     - `SPRING_DATASOURCE_USERNAME` = `<username>`
-     - `SPRING_DATASOURCE_PASSWORD` = `<password>`
-7. Click **Deploy Web Service**.
+### Option 2: Render with In-Memory Mode (Instant Zero-Config Demo)
+If you just want an instant live preview on Render without setting up any database:
+1. Connect your repo on Render as a Web Service (Docker).
+2. Set Environment Variable: `SPRING_PROFILES_ACTIVE` = `h2`.
+3. Deploy!
+
+### Option 3: Railway (Built-in MySQL)
+1. Go to [Railway.app](https://railway.app), click **New Project** > **Deploy from GitHub repo**.
+2. Click **Add MySQL** database service in Railway.
+3. Add `SPRING_DATASOURCE_URL` = `${{MySQL.MYSQL_URL}}`.
+4. Click **Generate Domain**.
 
 ---
 
@@ -66,6 +78,6 @@ On fresh deployments, the system automatically initializes default accounts:
 
 ## 🛠️ Tech Stack
 - **Backend**: Java 17, Spring Boot 2.7.18, Spring Security Crypto (BCrypt), Spring Data JPA
-- **Database**: MySQL 8.0 (with optional in-memory H2 profile support)
+- **Database Support**: Supabase (PostgreSQL), MySQL 8.0, In-Memory H2
 - **Frontend**: Single Page HTML5 / CSS3 / JavaScript (Vanilla)
 - **Containerization**: Multi-stage Docker build
