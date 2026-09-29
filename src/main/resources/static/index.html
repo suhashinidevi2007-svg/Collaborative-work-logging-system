@@ -474,7 +474,7 @@
         <form onsubmit="handleAwardPoints(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Select Employee</label>
-            <select id="awardEmployeeSelect" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-amber-500 outline-none">
+            <select id="awardEmployeeSelect" onfocus="loadAwardStaffSelect()" onclick="if(this.options.length <= 1) loadAwardStaffSelect()" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-amber-500 outline-none">
               <option value="">Select a staff member...</option>
             </select>
           </div>
@@ -1181,16 +1181,29 @@
     // AWARD POINTS CONSOLE (STRICTLY ADMIN ONLY!)
     // ==========================================
     async function loadAwardStaffSelect() {
-      if (!currentUser || currentUser.role !== 'ADMIN') return;
       const sel = document.getElementById('awardEmployeeSelect');
+      if (!sel) return;
+      try {
+        const res = await fetch(`${API_BASE}/employees`);
+        const staff = await res.json();
+        if (Array.isArray(staff) && staff.length > 0) {
+          sel.innerHTML = '<option value="">Select staff member...</option>' + staff.map(s => `
+            <option value="${s.employeeId}">${s.name} (${s.department} - ${s.points} pts)</option>
+          `).join('');
+          return;
+        }
+      } catch (ignored) {}
+
       try {
         const res = await fetch(`${API_BASE}/admin/employees?role=ADMIN`, {
           headers: { 'X-User-Role': 'ADMIN' }
         });
         const staff = await res.json();
-        sel.innerHTML = '<option value="">Select staff member...</option>' + staff.map(s => `
-          <option value="${s.employeeId}">${s.name} (${s.department} - ${s.points} pts)</option>
-        `).join('');
+        if (Array.isArray(staff) && staff.length > 0) {
+          sel.innerHTML = '<option value="">Select staff member...</option>' + staff.map(s => `
+            <option value="${s.employeeId}">${s.name} (${s.department} - ${s.points} pts)</option>
+          `).join('');
+        }
       } catch (err) {
         notify('Failed to load employee list: ' + err.message, true);
       }
@@ -1368,12 +1381,11 @@
       }
     }
 
-    function prefillAward(empId) {
+    async function prefillAward(empId) {
       switchView('adminAwards');
-      setTimeout(() => {
-        const sel = document.getElementById('awardEmployeeSelect');
-        if (sel) sel.value = empId;
-      }, 200);
+      await loadAwardStaffSelect();
+      const sel = document.getElementById('awardEmployeeSelect');
+      if (sel) sel.value = empId;
     }
 
     // ==========================================

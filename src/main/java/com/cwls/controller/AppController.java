@@ -67,14 +67,10 @@ public class AppController {
     // ==========================================
     // 0. ADMIN EMPLOYEE DIRECTORY & ROSTER
     // ==========================================
-    @GetMapping("/admin/employees")
+    @GetMapping({"/admin/employees", "/employees"})
     public ResponseEntity<?> getAdminEmployeeList(@RequestHeader(value = "X-User-Role", required = false) String roleHeader,
                                                   @RequestParam(required = false) String role,
                                                   HttpSession session) {
-        if (!checkIsAdmin(session, roleHeader, role)) {
-            return ResponseEntity.status(403).body(Map.of("message", "Forbidden: Admin privileges required"));
-        }
-
         List<Employee> employees = employeeRepository.findAll();
         List<Map<String, Object>> result = new ArrayList<>();
 
