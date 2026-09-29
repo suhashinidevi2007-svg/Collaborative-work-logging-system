@@ -17,8 +17,21 @@ public class DataSourceConfig {
     public DataSource dataSource(Environment env) {
         HikariDataSource ds = new HikariDataSource();
 
+        // 0. If H2 profile is active and no clean external URL is provided, boot in H2 mode immediately
+        String rawDbUrl = env.getProperty("SPRING_DATASOURCE_URL");
+        if ("h2".equalsIgnoreCase(env.getProperty("SPRING_PROFILES_ACTIVE")) && 
+            (rawDbUrl == null || rawDbUrl.isBlank() || isPlaceholder(rawDbUrl))) {
+            System.out.println(">>> [CWLS] In-Memory H2 mode active. Zero configuration required!");
+            ds.setJdbcUrl("jdbc:h2:mem:cwls_db;DB_CLOSE_DELAY=-1;MODE=MySQL");
+            ds.setDriverClassName("org.h2.Driver");
+            ds.setUsername("sa");
+            ds.setPassword("");
+            ds.setMaximumPoolSize(5);
+            return ds;
+        }
+
         // 1. Retrieve potential database connection environment variables
-        String dbUrl = env.getProperty("SPRING_DATASOURCE_URL");
+        String dbUrl = rawDbUrl;
         if (dbUrl == null || dbUrl.isBlank()) {
             dbUrl = env.getProperty("SUPABASE_DB_URL");
         }

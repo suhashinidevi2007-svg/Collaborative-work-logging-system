@@ -22,8 +22,9 @@ WORKDIR /app
 # Copy built war from build stage
 COPY --from=build /workspace/build/libs/cwls.war app.war
 
-# Set default port to 10000 (Render default)
+# Set default port to 10000 (Render default) and default profile to h2
 ENV PORT=10000
+ENV SPRING_PROFILES_ACTIVE=h2
 EXPOSE 10000
 
 # Optimized for cloud containers (Render 512MB RAM free tier, dynamic PORT expansion)
