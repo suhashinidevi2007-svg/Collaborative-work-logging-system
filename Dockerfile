@@ -8,11 +8,8 @@ COPY gradlew .
 COPY gradle/ gradle/
 COPY build.gradle settings.gradle ./
 
-# Give execution permission to gradlew
-RUN chmod +x gradlew
-
-# Pre-fetch dependencies
-RUN ./gradlew dependencies --no-daemon || true
+# Fix line endings and give execution permission to gradlew
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
 
 # Copy source code and build the war
 COPY src/ src/
@@ -25,9 +22,9 @@ WORKDIR /app
 # Copy built war from build stage
 COPY --from=build /workspace/build/libs/cwls.war app.war
 
-# Set default port
-ENV PORT=8080
-EXPOSE 8080
+# Set default port to 10000 (Render default)
+ENV PORT=10000
+EXPOSE 10000
 
-# Optimized for cloud containers (Render 512MB RAM free tier)
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-Xss512k", "-jar", "app.war"]
+# Optimized for cloud containers (Render 512MB RAM free tier, dynamic PORT expansion)
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Xss512k -Dserver.port=${PORT:-10000} -jar app.war"]

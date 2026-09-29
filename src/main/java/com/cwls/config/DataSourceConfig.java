@@ -17,7 +17,7 @@ public class DataSourceConfig {
     public DataSource dataSource(Environment env) {
         HikariDataSource ds = new HikariDataSource();
 
-        // 1. Check for database URL from various common cloud env variable names
+        // 1. Retrieve potential database connection environment variables
         String dbUrl = env.getProperty("SPRING_DATASOURCE_URL");
         if (dbUrl == null || dbUrl.isBlank()) {
             dbUrl = env.getProperty("SUPABASE_DB_URL");
@@ -36,7 +36,17 @@ public class DataSourceConfig {
             password = env.getProperty("SUPABASE_DB_PASSWORD");
         }
 
-        // 2. Handle Cloud Database URL (Supabase PostgreSQL / MySQL)
+        // 2. Check if placeholders were accidentally left in environment variables
+        boolean hasPlaceholders = (dbUrl != null && (dbUrl.contains("<") || dbUrl.contains(">") || dbUrl.contains("SUPABASE_HOST") || dbUrl.contains("YOUR_")))
+                || (username != null && (username.contains("<") || username.contains(">") || username.contains("SUPABASE_USER")))
+                || (password != null && (password.contains("<") || password.contains(">") || password.contains("YOUR_")));
+
+        if (hasPlaceholders) {
+            System.err.println(">>> [CWLS WARNING] Placeholder detected in database config. Falling back to H2 in-memory mode.");
+            dbUrl = null;
+        }
+
+        // 3. Handle Cloud Database URL (Supabase PostgreSQL / MySQL)
         if (dbUrl != null && !dbUrl.isBlank()) {
             // Support raw URI format: postgresql://user:password@host:port/database
             if (dbUrl.startsWith("postgres://") || dbUrl.startsWith("postgresql://")) {
@@ -83,10 +93,11 @@ public class DataSourceConfig {
             ds.setMinimumIdle(2);
             ds.setIdleTimeout(30000);
             ds.setMaxLifetime(600000);
+            ds.setConnectionTimeout(20000);
             return ds;
         }
 
-        // 3. Fallback for Render Free Tier or Cloud when no DB is provided:
+        // 4. Fallback for Render Free Tier or Cloud when no DB is provided:
         // Automatically run with in-memory H2 so deployment never fails!
         boolean isCloudEnvironment = System.getenv("RENDER") != null ||
                                      System.getenv("PORT") != null ||
@@ -103,7 +114,7 @@ public class DataSourceConfig {
             return ds;
         }
 
-        // 4. Default Local Development (MySQL localhost)
+        // 5. Default Local Development (MySQL localhost)
         ds.setJdbcUrl(localMySqlUrl != null ? localMySqlUrl : "jdbc:mysql://localhost:3306/cwls_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
         ds.setUsername(username != null ? username : "root");
         ds.setPassword(password != null ? password : "root");
