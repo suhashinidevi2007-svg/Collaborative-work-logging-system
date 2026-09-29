@@ -14,7 +14,10 @@ public class Project {
     private String projectName;
 
     private String clientName;
-    private String status; // NOT_STARTED, IN_PROGRESS, COMPLETED
+    private String status = "IN_PROGRESS"; // NOT_STARTED, IN_PROGRESS, COMPLETED
+    private Integer progress = 0; // 0 - 100%
+    private String deadline;
+    private String priority = "MEDIUM"; // LOW, MEDIUM, HIGH, CRITICAL
 
     public Project() {}
 
@@ -29,4 +32,13 @@ public class Project {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Integer getProgress() { return progress != null ? progress : 0; }
+    public void setProgress(Integer progress) { this.progress = progress; }
+
+    public String getDeadline() { return deadline; }
+    public void setDeadline(String deadline) { this.deadline = deadline; }
+
+    public String getPriority() { return priority != null ? priority : "MEDIUM"; }
+    public void setPriority(String priority) { this.priority = priority; }
 }

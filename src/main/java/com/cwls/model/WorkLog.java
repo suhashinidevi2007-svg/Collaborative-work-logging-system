@@ -1,4 +1,5 @@
 package com.cwls.model;
+
 import javax.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -6,6 +7,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "work_log")
 public class WorkLog {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long workLogId;
@@ -17,18 +19,37 @@ public class WorkLog {
     private LocalDate workDate = LocalDate.now();
     private String taskDescription;
     private Double hoursWorked;
-    private String status = "PENDING";
+    private String status = "PENDING"; // PENDING, APPROVED, REJECTED
+    private String priority = "MEDIUM"; // LOW, MEDIUM, HIGH, URGENT
+    private String category = "Development"; // Development, Bugfix, Meeting, Documentation, Research
     private LocalDateTime submittedAt = LocalDateTime.now();
 
+    public WorkLog() {}
+
     public Long getWorkLogId() { return workLogId; }
+    public void setWorkLogId(Long workLogId) { this.workLogId = workLogId; }
+
     public Employee getEmployee() { return employee; }
     public void setEmployee(Employee employee) { this.employee = employee; }
+
     public LocalDate getWorkDate() { return workDate; }
     public void setWorkDate(LocalDate workDate) { this.workDate = workDate; }
+
     public String getTaskDescription() { return taskDescription; }
     public void setTaskDescription(String taskDescription) { this.taskDescription = taskDescription; }
+
     public Double getHoursWorked() { return hoursWorked; }
     public void setHoursWorked(Double hoursWorked) { this.hoursWorked = hoursWorked; }
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getPriority() { return priority != null ? priority : "MEDIUM"; }
+    public void setPriority(String priority) { this.priority = priority; }
+
+    public String getCategory() { return category != null ? category : "Development"; }
+    public void setCategory(String category) { this.category = category; }
+
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
 }
