@@ -36,47 +36,61 @@ public class DataSourceConfig {
             password = env.getProperty("SUPABASE_DB_PASSWORD");
         }
 
-        // 2. Check if placeholders were accidentally left in environment variables
-        boolean hasPlaceholders = (dbUrl != null && (dbUrl.contains("<") || dbUrl.contains(">") || dbUrl.contains("SUPABASE_HOST") || dbUrl.contains("YOUR_")))
-                || (username != null && (username.contains("<") || username.contains(">") || username.contains("SUPABASE_USER")))
-                || (password != null && (password.contains("<") || password.contains(">") || password.contains("YOUR_")));
+        // 2. Extract credentials if embedded in URL (e.g. jdbc:postgresql://user:pass@host:port/db)
+        if (dbUrl != null && dbUrl.contains("@")) {
+            String raw = dbUrl.startsWith("jdbc:") ? dbUrl.substring(5) : dbUrl;
+            try {
+                URI uri = new URI(raw);
+                String userInfo = uri.getUserInfo();
+                if (userInfo != null && userInfo.contains(":")) {
+                    String[] parts = userInfo.split(":", 2);
+                    if (username == null || username.isBlank()) username = parts[0];
+                    if (password == null || password.isBlank()) password = parts[1];
+                }
+                int port = uri.getPort() == -1 ? 5432 : uri.getPort();
+                String path = uri.getPath() != null ? uri.getPath() : "/postgres";
+                String query = uri.getQuery();
 
-        if (hasPlaceholders) {
-            System.err.println(">>> [CWLS WARNING] Placeholder detected in database config. Falling back to H2 in-memory mode.");
-            dbUrl = null;
-        }
-
-        // 3. Handle Cloud Database URL (Supabase PostgreSQL / MySQL)
-        if (dbUrl != null && !dbUrl.isBlank()) {
-            // Support raw URI format: postgresql://user:password@host:port/database
-            if (dbUrl.startsWith("postgres://") || dbUrl.startsWith("postgresql://")) {
-                try {
-                    String rawUri = dbUrl.replace("jdbc:", "");
-                    URI uri = new URI(rawUri);
-
-                    String userInfo = uri.getUserInfo();
-                    if (userInfo != null && userInfo.contains(":")) {
+                String cleanJdbc = "jdbc:postgresql://" + uri.getHost() + ":" + port + path;
+                if (query != null && !query.isBlank()) {
+                    cleanJdbc += "?" + query;
+                } else {
+                    cleanJdbc += "?sslmode=require";
+                }
+                dbUrl = cleanJdbc;
+            } catch (Exception e) {
+                // Regex/string fallback
+                int atIdx = raw.indexOf("@");
+                int slashIdx = raw.indexOf("//");
+                if (slashIdx != -1 && atIdx > slashIdx) {
+                    String userInfo = raw.substring(slashIdx + 2, atIdx);
+                    String hostPart = raw.substring(atIdx + 1);
+                    if (userInfo.contains(":")) {
                         String[] parts = userInfo.split(":", 2);
                         if (username == null || username.isBlank()) username = parts[0];
                         if (password == null || password.isBlank()) password = parts[1];
                     }
-
-                    int port = uri.getPort() == -1 ? 5432 : uri.getPort();
-                    String path = uri.getPath();
-                    String query = uri.getQuery();
-
-                    String jdbcUrl = "jdbc:postgresql://" + uri.getHost() + ":" + port + path;
-                    if (query != null && !query.isBlank()) {
-                        jdbcUrl += "?" + query;
-                    } else {
-                        jdbcUrl += "?sslmode=require";
-                    }
-                    dbUrl = jdbcUrl;
-                } catch (Exception e) {
-                    if (!dbUrl.startsWith("jdbc:")) {
-                        dbUrl = "jdbc:" + dbUrl;
+                    dbUrl = "jdbc:postgresql://" + hostPart;
+                    if (!dbUrl.contains("?")) {
+                        dbUrl += "?sslmode=require";
                     }
                 }
+            }
+        }
+
+        // 3. Strict Check for Unfilled Placeholders (e.g. [YOUR-PASSWORD], <PASSWORD>, SUPABASE_HOST)
+        boolean hasPlaceholders = isPlaceholder(dbUrl) || isPlaceholder(username) || isPlaceholder(password);
+
+        if (hasPlaceholders) {
+            System.err.println(">>> [CWLS WARNING] Detected placeholder text (like [YOUR-PASSWORD]) in database config!");
+            System.err.println(">>> [CWLS] Falling back to H2 in-memory mode so Render deployment succeeds immediately!");
+            dbUrl = null;
+        }
+
+        // 4. Handle Cloud Database (Supabase PostgreSQL / MySQL)
+        if (dbUrl != null && !dbUrl.isBlank()) {
+            if (!dbUrl.startsWith("jdbc:")) {
+                dbUrl = "jdbc:" + dbUrl;
             }
 
             ds.setJdbcUrl(dbUrl);
@@ -97,15 +111,14 @@ public class DataSourceConfig {
             return ds;
         }
 
-        // 4. Fallback for Render Free Tier or Cloud when no DB is provided:
-        // Automatically run with in-memory H2 so deployment never fails!
+        // 5. Cloud Fallback: Run with in-memory H2 database (Zero-Crash Guarantee)
         boolean isCloudEnvironment = System.getenv("RENDER") != null ||
                                      System.getenv("PORT") != null ||
                                      "h2".equalsIgnoreCase(env.getProperty("SPRING_PROFILES_ACTIVE"));
 
         String localMySqlUrl = env.getProperty("spring.datasource.url");
         if (isCloudEnvironment && (localMySqlUrl == null || localMySqlUrl.contains("localhost:3306"))) {
-            System.out.println(">>> [CWLS] No cloud database URL configured on Render. Booting in H2 in-memory mode.");
+            System.out.println(">>> [CWLS] Operating in in-memory H2 mode on Render.");
             ds.setJdbcUrl("jdbc:h2:mem:cwls_db;DB_CLOSE_DELAY=-1;MODE=MySQL");
             ds.setDriverClassName("org.h2.Driver");
             ds.setUsername("sa");
@@ -114,11 +127,21 @@ public class DataSourceConfig {
             return ds;
         }
 
-        // 5. Default Local Development (MySQL localhost)
+        // 6. Default Local Development (MySQL localhost)
         ds.setJdbcUrl(localMySqlUrl != null ? localMySqlUrl : "jdbc:mysql://localhost:3306/cwls_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
         ds.setUsername(username != null ? username : "root");
         ds.setPassword(password != null ? password : "root");
         ds.setDriverClassName("com.mysql.cj.jdbc.Driver");
         return ds;
+    }
+
+    private boolean isPlaceholder(String val) {
+        if (val == null || val.isBlank()) return false;
+        String upper = val.toUpperCase();
+        return upper.contains("<") || upper.contains(">") ||
+               upper.contains("[") || upper.contains("]") ||
+               upper.contains("YOUR-") || upper.contains("YOUR_") ||
+               upper.contains("PASSWORD") || upper.contains("SUPABASE_HOST") ||
+               upper.contains("SUPABASE_USER");
     }
 }
